@@ -1,65 +1,65 @@
-// 导入axios
 import axios from 'axios'
 
+import loading from './loading'
+
 import store from '../store'
-import router from '../router'
-
 import { ElMessage } from 'element-plus'
-
-// 创建axios实例对象
-const service = axios.create({
-  baseURL: process.env.VUE_APP_BASE_API,
-  timeout: 5000
+const instance = axios.create({
+  baseURL: 'https://www.markerhub.com/vueadmin-java',
+  timeout: 5000 // 超时时间
 })
 
-service.interceptors.request.use(
+instance.interceptors.request.use(
   (config) => {
-    const token = window.localStorage.getItem('token')
+    // 开启loading加载
+    loading.open()
+    const token = store.getters.token
+    if (token) config.headers.authorization = token
 
-    if (token) {
-      config.headers.Authorization = 'Bearer ' + token
-    }
     return config
   },
   (err) => {
-    console.log(err)
+    loading.close()
+    return Promise.reject(err)
   }
 )
-
 // 响应拦截
-service.interceptors.response.use(
+instance.interceptors.response.use(
   (res) => {
-    return res ? res.data : res
-  },
-  (err) => {
-    console.log(err)
-    if (err.response.status === '401') {
-      ElMessage.error('请先登录')
-      router.push({ path: '/login' })
+    // 关闭loading加载
+    loading.close()
+    console.log(res) // 后端响应的数据
+    // TODO 全局相应处理
+    if (res.data.code === 200) {
+      return res
+    } else {
+      _showError(res.data.msg)
+      return Promise.reject(new Error(res.data.msg))
     }
-    Notify(
-      err.response.data.errors[Object.keys(err.response.data.errors)[0]][0]
-    )
+    // return res
+  },
+  (error) => {
+    // 关闭loading加载
+    loading.close()
+    console.log(error)
+    // TODO token过期状态  401 描述信息  无感知登录 无感知刷新
+    // 响应失败进行信息处理
+    _showError(error.message)
+    return Promise.reject(error)
   }
 )
-// 统一了传参处理
-const request = (options) => {
-  if (options.method.toLowerCase() === 'get') {
-    options.params = options.data || {}
-  }
-  return service(options)
+// 响应提示信息
+const _showError = (message) => {
+  const info = message || '发生未知错误'
+  ElMessage.error(info)
 }
 
-router.beforeEach((to, from, next) => {
-  if (to.meta.isAuthRequired && store.state.text === false) {
-    console.log('未验证，请先登录')
-    ElMessage.error('您还没有登录，请先登录')
-    return next('/login')
-  } else {
-    console.log('已验证')
-    next()
+function request(options) {
+  options.method = options.method || 'get'
+  if (options.method.toLowerCase() === 'get') {
+    options.params = options.data
   }
-})
+  return instance(options)
+}
 
-// 导出axios实例对象
 export default request
