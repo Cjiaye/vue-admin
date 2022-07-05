@@ -9,7 +9,7 @@
       </el-form-item>
       <el-form-item label="验证码" prop="code">
         <el-input v-model="loginForm.code" />
-        <img :src="url" class="tu" />
+        <img :src="url" class="tu" @click="getImg" />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="dl">登录</el-button>
@@ -68,6 +68,9 @@ const getCapt = async () => {
   loginForm.token = res.data.data.token
 }
 getCapt()
+const getImg = () => {
+  getCapt()
+}
 
 //点击登录
 const dl = async () => {
