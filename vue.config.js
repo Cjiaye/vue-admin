@@ -1,11 +1,28 @@
+const { defineConfig } = require('@vue/cli-service')
 const path = require('path')
 function resolve(dir) {
   return path.join(__dirname, dir)
 }
-// https://cli.vuejs.org/zh/guide/webpack.html#%E7%AE%80%E5%8D%95%E7%9A%84%E9%85%8D%E7%BD%AE%E6%96%B9%E5%BC%8F
-module.exports = {
+module.exports = defineConfig({
+  transpileDependencies: true,
+  publicPath: './',
+  devServer: {
+    open: true,
+    port: 9999,
+    https: false,
+    host: 'localhost',
+    proxy: {
+      [process.env.VUE_APP_BASE_API]: {
+        target: process.env.VUE_APP_SERVICE_URL,
+        changeOrigin: true,
+        pathRewrite: {
+          ['^' + process.env.VUE_APP_BASE_API]: ''
+        }
+      }
+    }
+  },
+  lintOnSave: true,
   chainWebpack(config) {
-    // 设置 svg-sprite-loader
     config.module.rule('svg').exclude.add(resolve('src/icons')).end()
     config.module
       .rule('icons')
@@ -19,4 +36,4 @@ module.exports = {
       })
       .end()
   }
-}
+})
